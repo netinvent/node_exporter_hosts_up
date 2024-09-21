@@ -591,13 +591,18 @@ _host_ping() {
 
         Logger "Running ping for host ${host}" "NOTICE"
         ping -i ${PING_INTERVAL} -c ${PING_RETRIES} -W ${PING_TIMEOUT} ${host} > /dev/null 2>&1
-        printf "ping_up{target_host=\""${host}"\"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+        printf "ping_up{target_host=\""${host}"\""${LABEL}"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
         return
 }
 
 host_ping() {
         Logger "Running hosts_up script on $(hostname)" "NOTICE"
         printf "# TYPE ping_up gauge\n# HELP layer3_up Is some IP reachable from our host\n" > "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+
+        LABEL=""
+        if [ "${OPTIONAL_PROMETHEUS_TYPE_LABEL}" != "" ]; then
+                LABEL=",type=\""${OPTIONAL_PROMETHEUS_TYPE_LABEL}"\""
+        fi
 
         pids=""
         for host in ${ping_hosts[@]}; do
