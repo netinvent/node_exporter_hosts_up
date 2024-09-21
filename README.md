@@ -3,7 +3,13 @@
 This is a quick and dirty script to check if a host that runs node_exporter can ping other hosts  
 
 The main goal of this script is to check VPN peer reachability from the host.  
+
+## Why
+
 Host reachability checks can be used for Wireguard / IPSec / OpenVPN / GRE / VxLan tunnels, routing checks or general internet availability.
+
+So why not simply use `blackbox_exporter` ?  
+Because this can be installed quickly on almost any host supporting `node_exporter` and doesn't need another open port to query.
 
 ## Grafana example
 
