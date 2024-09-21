@@ -2,7 +2,15 @@
 
 This is a quick and dirty script to check if a host that runs node_exporter can ping other hosts  
 
-The main goal of this script is to check VPN peer reachability from the host.
+The main goal of this script is to check VPN peer reachability from the host.  
+Host reachability checks can be used for Wireguard / IPSec / OpenVPN / GRE / VxLan tunnels, routing checks or general internet availability.
+
+## Grafana example
+
+The following example dashboard shows host reachability from other hosts.  
+The dashboard can be found in the `grafana_example` directory.
+
+![image](grafana_example/example_dashboard.png)
 
 ## Setup
 
