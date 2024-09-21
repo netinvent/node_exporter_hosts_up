@@ -8,7 +8,9 @@ The main goal of this script is to check VPN peer availability from the host.
 
 Download file `hosts_up.sh`:
 
+```
 cd /usr/local/bin && curl -OL https://raw.githubusercontent.com/netinvent/node_exporter_hosts_up/main/hosts_up.sh && chmod +x /usr/local/bin/hosts_up.sh
+```
 
 Create file `/etc/hosts_up.conf` containing the following
 Change hosts to whatever you need
