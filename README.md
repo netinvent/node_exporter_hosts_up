@@ -2,7 +2,7 @@
 
 This is a quick and dirty script to check if a host that runs node_exporter can ping other hosts  
 
-The main goal of this script is to check VPN peer availability from the host.
+The main goal of this script is to check VPN peer reachability from the host.
 
 ## Setup
 
@@ -40,8 +40,16 @@ declare -a ping_hosts=(kernel.org 1.1.1.1 9.9.9.9 linux.org)
 ## Create a cron entry with the following
 
 ```
-echo "* * * * * root /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf
+echo "* * * * * root /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf" >> /etc/crontab
 ```
+
+Since cron has a minute resolution, if you need to run this test more than every minute, you might add 3 other lines to cron like the following to run every 15 seconds:
+```
+* * * * * root sleep 15; /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf"
+* * * * * root sleep 30; /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf"
+* * * * * root sleep 45; /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf"
+```
+
 
 ## node_exporter remarks
 
