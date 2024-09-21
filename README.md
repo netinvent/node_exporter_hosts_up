@@ -37,10 +37,11 @@ PING_TIMEOUT=2
 
 NODE_EXPORTER_TEXT_COLLECTOR_DIR="/var/lib/node_exporter/textfile_collector"
 PROM_FILE="hosts_up.prom"
+#LOG_FILE="/var/log/hosts_up.log"
 LOG_FILE=""
-#LOG_FILE="/var/log/hosts_up.log" # Optional log file
 
-
+# Optional type label
+OPTIONAL_PROMETHEUS_TYPE_LABEL="vpn"
 
 declare -a ping_hosts=(kernel.org 1.1.1.1 9.9.9.9 linux.org)
 ```
