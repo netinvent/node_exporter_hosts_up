@@ -1,15 +1,15 @@
 ## node_exporter hosts up script
 
-This is a quick and dirty script to check if a host that runs node_exporter can ping other hosts  
+This is a quick and dirty script to check if a host that runs node_exporter can ping other hosts via ICMP, TCP or UDP   
 
-The main goal of this script is to check VPN peer reachability from the host.  
+The main goal of this script is to check VPN peer reachability from the host as well as specific round trips for various ports. 
 
 ## Why
 
 Host reachability checks can be used for Wireguard / IPSec / OpenVPN / GRE / VxLan tunnels, routing checks or general internet availability.
 
 So why not simply use `blackbox_exporter` ?  
-Because this can be installed quickly on almost any host supporting `node_exporter` and doesn't need another open port to query.
+Because this solution doesn't need another open port to be queried by prometheus, since this script can be installed quickly on almost any host, and will just append it's data to `node_exporter` via text_collector.
 
 ## Grafana example
 
@@ -46,10 +46,16 @@ PROM_FILE="hosts_up.prom"
 #LOG_FILE="/var/log/hosts_up.log"
 LOG_FILE=""
 
-# Optional type label
-OPTIONAL_PROMETHEUS_TYPE_LABEL="vpn"
+# Optional prometheus labels to add on results
+declare -a OPTIONAL_PROMETHEUS_TYPE_LABELS=(type=vpn src=supervision)
 
-declare -a ping_hosts=(kernel.org 1.1.1.1 9.9.9.9 linux.org)
+# Simple ICMP ping requests
+declare -a ping_hosts=(10.10.0.2 192.168.23.254)
+
+# Roundtrip requests
+declare -a tcp_rtt=(google.fr:443 127.0.0.1:9100)
+declare -a udp_rtt=(1.1.1.1:53)
+declare -a icmp_rtt=(google.fr)
 ```
 
 ## Create a cron entry with the following
