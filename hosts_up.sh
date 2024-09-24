@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-# Check layer3 availability
-# Used for GRE / VPN tunnel availability checks
+# Check layer2/3 availability and roundtrip via ICMP, TCP or UDP
+# Used for GRE / VPN tunnel availability checks among other usages
 
 # (C) 2024 NetInvent SAS under BSD-3-Clause license
-SCRIPT_BUILD=2024092101
+SCRIPT_BUILD=2024092401
 
 # Default values that can be overrided via a file
 CONF_FILE=/etc/hosts_up.conf
@@ -12,6 +12,10 @@ LOG_FILE=/var/log/hosts_up.log
 NODE_EXPORTER_TEXT_COLLECTOR_DIR="/var/lib/node_exporter/textfile_collector"
 PROM_FILE="hosts_up.prom"
 
+# TRACEROUTE defaults
+f_ttl=255
+m_ttl=255
+METHOD=tcp
 
 ## OFUNCTIONS 2.4.8 imports
 # Sub function of Logger
@@ -143,6 +147,64 @@ IsInteger() {
                 fi
         fi
 }
+
+# Usage [ $(IsNumeric $var) -eq 1 ]
+function IsNumeric {
+        local value="${1}"
+
+        if type expr > /dev/null 2>&1; then
+                expr "$value" : '^[-+]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}$' > /dev/null 2>&1
+                if [ $? -eq 0 ]; then
+                        echo 1
+                else
+                        echo 0
+                fi
+        else
+                if [[ $value =~ ^[-+]?[0-9]+([.][0-9]+)?$ ]]; then
+                        echo 1
+                else
+                        echo 0
+                fi
+        fi
+}
+
+function IsNumericExpand {
+        eval "local value=\"${1}\"" # Needed eval so variable variables can be processed
+
+        echo $(IsNumeric "$value")
+}
+
+# Converts human readable sizes into integer kilobyte sizes
+# Usage numericSize="$(HumanToNumeric $humanSize)"
+function HumanToNumeric {
+        local value="${1}"
+
+        local notation
+        local suffix
+        local suffixPresent
+        local multiplier
+
+        notation=(K M G T P E)
+        for suffix in "${notation[@]}"; do
+                multiplier=$((multiplier+1))
+                if [[ "$value" == *"$suffix"* ]]; then
+                        suffixPresent=$suffix
+                        break;
+                fi
+        done
+
+        if [ "$suffixPresent" != "" ]; then
+                value=${value%$suffix*}
+                value=${value%.*}
+                # /1024 since we convert to kilobytes instead of bytes
+                value=$((value*(1024**multiplier/1024)))
+        else
+                value=${value%.*}
+        fi
+
+        echo $value
+}
+
 
 ## Full call
 ##ExecTasks "$mainInput" "$id" $readFromFile $softPerProcessTime $hardPerProcessTime $softMaxTime $hardMaxTime $counting $sleepTime $keepLogging $spinner $noTimeErrorLog $noErrorLogsAtAll $numberOfProcesses $auxInput $maxPostponeRetries $minTimeBetweenRetries $validExitCodes
@@ -586,25 +648,188 @@ ExecTasks() {
 }
 ## OFUNCTIONS 2.4.8 import end
 
+## TCPPING 2.5 import
+if [ "$LOCAL_OS" = "BSD" ] || [ "$LOCAL_OS" = "MacOSX" ]; then
+        METHOD_PARAMETER="-P"
+else
+        METHOD_PARAMETER="-M"
+fi
+
+checkEnvironment_tcpping() {
+        if ! type awk > /dev/null 2>&1; then
+                echo >&2 "awk binary not found. Please install it first"
+                exit 2
+        fi
+
+        if type traceroute > /dev/null 2>&1; then
+                traceRouteBinary=`type traceroute | awk '{print $(NF)}'`
+                if [ `${traceRouteBinary} -M 2>&1 | grep -c unrecog` -eq 0 ]; then
+                        traceRouteImplementation="traceroute"
+                        return
+                else
+                        if [ $_DEBUG = true ]; then
+                                echo >&2 "traceroute does not support -M parameter, switching to tcptraceroute"
+                        fi
+                fi
+        fi
+
+        if type tcptraceroute > /dev/null 2>&1; then
+                traceRouteBinary=`type tcptraceroute  | awk '{print $(NF)}'`
+                traceRouteImplementation="tcptraceroute"
+                return
+        else
+                echo >&2 "traceroute binary not found. Switching to tcptraceroute also failed."
+                exit 1
+        fi
+}
+
+# Measure latency via TCP SYN / UDP / ICMP
+_testSite() {
+        local METHOD="${1}"
+        local host="${2}"
+        local port="${3:-80}"
+
+        local traceRoute=
+        local traceRouteCommand=
+        local foundHost=
+        #local rtt=
+
+        local myseq=0
+
+        Logger "Running ${METHOD} ping for host ${host} on port ${port}" "NOTICE"
+
+
+        if [ "$traceRouteImplementation" = "tcptraceroute" ]; then
+                if [ "${METHOD}" != "tcp" ] && [ "$LOCAL_OS" != "BSD" ] && [ "$LOCAL_OS" != "MacOSX" ]; then
+                        echo echo >&2 "Cannot use ${traceRouteBinary} with method ${METHOD}. Please use traceroute"
+                        exit 23
+                fi
+                traceRouteCommand="$SUDO_COMMAND${traceRouteBinary} -f ${f_ttl} -m ${m_ttl} -q ${PING_RETRIES} -w ${PING_TIMEOUT} ${args} ${host} ${port}"
+        else
+                traceRouteCommand="$SUDO_COMMAND${traceRouteBinary} ${METHOD_PARAMETER} ${METHOD} -f ${f_ttl} -m ${m_ttl} -q ${PING_RETRIES} -w ${PING_TIMEOUT} -p ${port} ${host}"
+        fi
+        if [ "{$_DEBUG}" = true ]; then
+                echo "$traceRouteCommand"
+        fi
+
+        # BSD traceroute (and tcptraceroute) outputs header line to stderr while outputting results to stdout, whereas linux versions output everything to stdout
+        if [ "$traceRouteImplementation" = "tcptraceroute" ] || [ "$LOCAL_OS" = "BSD" ] || [ "$LOCAL_OS" = "MacOSX" ]; then
+                traceRoute=`$traceRouteCommand 2>/dev/null`
+        else
+                # Remove first line from result when using traceroute to avoid header
+                traceRoute=`$traceRouteCommand 2>/dev/null | awk 'NR>1'`
+        fi
+        result=$?
+
+        if [ "$traceRouteImplementation" = "tcptraceroute" ] && [ $myseq -eq 0 ]; then
+                if [ $result -ne 0 ]; then
+                        if [ "`id -u`" -ne 0 ]; then
+                                echo >&2 "Unable to run '$traceRouteCommand' command. Please try run $0 with -Z parameter or 'sudo $0'"
+                                exit 20
+                        else
+                                echo >&2 "Unable to run '$traceRouteCommand' command. Please submit an issue in 'https://github.com/deajan/tcpping/issues' with the output of the command."
+                                exit 21
+                        fi
+                fi
+
+                if echo "${traceRoute}" | egrep -i "(bad destination|got roo|not known|cannot handle)" >/dev/null 2>&1; then
+                        echo >&2 "${traceRoute}"
+                        exit 22
+                fi
+        fi
+
+        if [ "$traceRouteImplementation" = "tcptraceroute" ]; then
+                rtt=`echo "${traceRoute}" | sed 's/.*] //' | awk '{print $1}'`
+                # if RTT is 255, try again with ACK method
+                if [ "$rtt" = "255" ]; then
+                        if [ "{$_DEBUG}" = true ]; then
+                                echo >&2 "SYN method failed, attempting ACK method..."
+                        fi
+                        traceRouteCommand="$SUDO_COMMAND${traceRouteBinary} -A -f ${f_ttl} -m ${m_ttl} -q ${numberOfQueries} -w ${timeToWait} ${args} ${host} ${port}"
+                        traceRoute=`$traceRouteCommand 2>/dev/null`
+                        rtt=`echo "${traceRoute}" | sed 's/.*] //' | awk '{print $1}'`
+                fi
+        else
+                rtt=`echo "${traceRoute}" | awk '{print $4}'`
+        fi
+        if [ "${traceroute_arg_n}" = true ]; then
+                rtt=`echo "${traceRoute}" | awk '{print $3}'`
+        else
+                rtt=`echo "${traceRoute}" | awk '{print $4}'`
+        fi
+
+        # Prometheus fix
+        ([ "$rtt" = "" ] || [ "$rtt" = "*" ]) && rtt=0.0
+}
+
+testSite() {
+        local METHOD="${1}"
+        local host="${2}"
+        local port="${3:-80}"
+
+        local counter=0
+
+        rtt=0.0
+        while ([ ${rtt} == "0.0" ] && [ $counter -lt $PING_RETRIES ]); do
+                _testSite ${METHOD} ${host} ${port}
+                counter=$((counter+1))
+        done
+
+        printf "host_rtt{target_host=\""${host}":"${port}"\",method=\""${METHOD}"\""${LABELS}"} "${rtt}"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+}
+
+## TCPPING 2.5 import end
+
 _host_ping() {
         local host="${1}"
 
         Logger "Running ping for host ${host}" "NOTICE"
         ping -i ${PING_INTERVAL} -c ${PING_RETRIES} -W ${PING_TIMEOUT} ${host} > /dev/null 2>&1
-        printf "ping_up{target_host=\""${host}"\""${LABEL}"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+        printf "ping_up{target_host=\""${host}"\""${LABELS}"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
         return
 }
 
+
+
 host_ping() {
         Logger "Running hosts_up script on $(hostname)" "NOTICE"
-        printf "# TYPE ping_up gauge\n# HELP layer3_up Is some IP reachable from our host\n" > "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+        printf "# TYPE ping_up gauge\n# HELP ping_up Is some IP reachable from our host (0 = good, 1 = bad, 2 = cannot resolve)\n" > "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+        printf "# TYPE host_rtt gauge\n# HELP host_rtt Roundtrip to host via TCP SYN / UDP or ICMP\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
 
-        LABEL=""
-        if [ "${OPTIONAL_PROMETHEUS_TYPE_LABEL}" != "" ]; then
-                LABEL=",type=\""${OPTIONAL_PROMETHEUS_TYPE_LABEL}"\""
+        LABELS=""
+        if [ "${OPTIONAL_PROMETHEUS_TYPE_LABELS}" != "" ]; then
+                for label in ${OPTIONAL_PROMETHEUS_TYPE_LABELS[@]}; do
+                        label_name="${label%%=*}"
+                        label_value="${label##*=}"
+                        LABELS="${LABELS},${label_name}=\""${label_value}"\""
+                done
+        fi
+        if [ "${tcp_rtt}" != "" ] || [ "${udp_rtt}" != "" ] || [ "${icmp_rtt}" != "" ]; then
+                checkEnvironment_tcpping
         fi
 
         pids=""
+        for addr in ${tcp_rtt[@]}; do
+                host="${addr%%:*}"
+                port="${addr##*:}"
+                testSite "tcp" "${host}" "${port}" &
+                pids="$pids;$!"
+        done
+
+        for addr in ${udp_rtt[@]}; do
+                host="${addr%%:*}"
+                port="${addr##*:}"
+                testSite "udp" "$host" "${port}" &
+                pids="$pids;$!"
+        done
+
+        for addr in ${icmp_rtt[@]}; do
+                host="${addr%%:*}"
+                port="0"
+                testSite "icmp" "$host" "${port}" &
+                pids="$pids;$!"
+        done
+
         for host in ${ping_hosts[@]}; do
                 _host_ping "$host" &
                 pids="$pids;$!"
@@ -618,7 +843,7 @@ TrapError() {
         local line="$1"
         local code="${2:-1}"
 
-        if [ $_LOGGER_SILENT == false ]; then
+        if [ "$_LOGGER_SILENT" == false ]; then
                 (>&2 echo -e "\e[45m/!\ ERROR in ${job}: Near line ${line}, exit code ${code}\e[0m")
         fi
 }

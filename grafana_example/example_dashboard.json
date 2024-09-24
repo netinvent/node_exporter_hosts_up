@@ -1,309 +1,674 @@
 {
-    "__inputs": [
-      {
-        "name": "DS_MIMIR",
-        "label": "Mimir",
-        "description": "",
-        "type": "datasource",
-        "pluginId": "prometheus",
-        "pluginName": "Prometheus"
-      }
-    ],
-    "__elements": {},
-    "__requires": [
-      {
-        "type": "grafana",
-        "id": "grafana",
-        "name": "Grafana",
-        "version": "11.2.0"
-      },
-      {
-        "type": "datasource",
-        "id": "prometheus",
-        "name": "Prometheus",
-        "version": "1.0.0"
-      },
-      {
-        "type": "panel",
-        "id": "stat",
-        "name": "Stat",
-        "version": ""
-      },
-      {
-        "type": "panel",
-        "id": "timeseries",
-        "name": "Time series",
-        "version": ""
-      }
-    ],
-    "annotations": {
-      "list": [
-        {
-          "builtIn": 1,
-          "datasource": {
-            "type": "grafana",
-            "uid": "-- Grafana --"
-          },
-          "enable": true,
-          "hide": true,
-          "iconColor": "rgba(0, 211, 255, 1)",
-          "name": "Annotations & Alerts",
-          "type": "dashboard"
-        }
-      ]
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "11.2.0"
     },
-    "editable": true,
-    "fiscalYearStartMonth": 0,
-    "graphTooltip": 0,
-    "id": null,
-    "links": [],
-    "panels": [
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
       {
+        "builtIn": 1,
         "datasource": {
-          "type": "prometheus",
-          "uid": "${DS_MIMIR}"
+          "type": "grafana",
+          "uid": "-- Grafana --"
         },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "mappings": [
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "index": 0,
+                  "text": "OK"
+                },
+                "1": {
+                  "index": 1,
+                  "text": "BAD"
+                },
+                "2": {
+                  "index": 2,
+                  "text": "DNS BAD"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
               {
-                "options": {
-                  "0": {
-                    "index": 0,
-                    "text": "OK"
-                  },
-                  "1": {
-                    "index": 1,
-                    "text": "BAD"
-                  },
-                  "2": {
-                    "index": 2,
-                    "text": "DNS BAD"
-                  }
-                },
-                "type": "value"
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
-            ],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 1
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 0.001
+                    },
+                    {
+                      "color": "#EAB839",
+                      "value": 100
+                    }
+                  ]
                 }
-              ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "ping_up{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
+          "instant": false,
+          "legendFormat": "{{target_host}} on {{instance}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "host_rtt{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "{{method}} {{target_host}} on {{instance}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Target Host Reachable",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
             }
           },
-          "overrides": []
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 24,
-          "x": 0,
-          "y": 0
-        },
-        "id": 1,
-        "options": {
-          "colorMode": "background",
-          "graphMode": "area",
-          "justifyMode": "auto",
-          "orientation": "auto",
-          "percentChangeColorMode": "standard",
-          "reduceOptions": {
-            "calcs": [
-              "lastNotNull"
-            ],
-            "fields": "",
-            "values": false
-          },
-          "showPercentChange": false,
-          "textMode": "auto",
-          "wideLayout": true
-        },
-        "pluginVersion": "11.2.0",
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${DS_MIMIR}"
-            },
-            "editorMode": "code",
-            "expr": "ping_up{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
-            "instant": false,
-            "legendFormat": "{{target_host}} on {{instance}}",
-            "range": true,
-            "refId": "A"
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
           }
-        ],
-        "title": "Target Host Reachable",
-        "type": "stat"
+        },
+        "overrides": []
       },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "host_rtt{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
+          "instant": false,
+          "legendFormat": "{{method}} {{target_host}} on {{instance}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Target Host RTT",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "ping_up{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
+          "instant": false,
+          "legendFormat": "{{target_host}} on {{instance}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Target Host Reachable over time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background"
+            },
+            "filterable": true,
+            "inspect": false,
+            "minWidth": 50
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 0.00001
+              },
+              {
+                "color": "#EAB839",
+                "value": 100
+              },
+              {
+                "color": "blue",
+                "value": 1000000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Value"
+          }
+        ]
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "host_rtt{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{target_host}} on {{instance}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Target Host RTT",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "__name__": true,
+              "__tenant_id__": true,
+              "instance": false,
+              "job": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background"
+            },
+            "filterable": true,
+            "inspect": false,
+            "minWidth": 50
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              },
+              {
+                "color": "#EAB839",
+                "value": 2
+              },
+              {
+                "color": "blue",
+                "value": 1000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 5,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Value"
+          }
+        ]
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "ping_up{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{target_host}} on {{instance}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Target Host Reachable Status",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "__name__": true,
+              "__tenant_id__": true,
+              "instance": false,
+              "job": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [],
+  "templating": {
+    "list": [
       {
+        "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_MIMIR}"
+          "uid": "${DS_PROMETHEUS}"
         },
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "palette-classic"
-            },
-            "custom": {
-              "axisBorderShow": false,
-              "axisCenteredZero": false,
-              "axisColorMode": "text",
-              "axisLabel": "",
-              "axisPlacement": "auto",
-              "barAlignment": 0,
-              "barWidthFactor": 0.6,
-              "drawStyle": "line",
-              "fillOpacity": 0,
-              "gradientMode": "none",
-              "hideFrom": {
-                "legend": false,
-                "tooltip": false,
-                "viz": false
-              },
-              "insertNulls": false,
-              "lineInterpolation": "linear",
-              "lineWidth": 1,
-              "pointSize": 3,
-              "scaleDistribution": {
-                "type": "linear"
-              },
-              "showPoints": "auto",
-              "spanNulls": false,
-              "stacking": {
-                "group": "A",
-                "mode": "none"
-              },
-              "thresholdsStyle": {
-                "mode": "off"
-              }
-            },
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 1
-                }
-              ]
-            }
-          },
-          "overrides": []
+        "definition": "label_values(ping_up,__tenant_id__)",
+        "hide": 1,
+        "includeAll": true,
+        "label": "tenant",
+        "multi": true,
+        "name": "tenant",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(ping_up,__tenant_id__)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "gridPos": {
-          "h": 9,
-          "w": 24,
-          "x": 0,
-          "y": 8
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
         },
-        "id": 2,
-        "options": {
-          "legend": {
-            "calcs": [],
-            "displayMode": "list",
-            "placement": "bottom",
-            "showLegend": true
-          },
-          "tooltip": {
-            "mode": "single",
-            "sort": "none"
-          }
+        "definition": "label_values(ping_up,instance)",
+        "hide": 1,
+        "includeAll": true,
+        "label": "instance",
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(ping_up,instance)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "targets": [
-          {
-            "datasource": {
-              "type": "prometheus",
-              "uid": "${DS_MIMIR}"
-            },
-            "editorMode": "code",
-            "expr": "ping_up{__tenant_id__=~\"$tenant\",instance=~\"$instance\"}",
-            "instant": false,
-            "legendFormat": "{{target_host}} on {{instance}}",
-            "range": true,
-            "refId": "A"
-          }
-        ],
-        "title": "Target Host Reachable over time",
-        "type": "timeseries"
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
       }
-    ],
-    "schemaVersion": 39,
-    "tags": [],
-    "templating": {
-      "list": [
-        {
-          "current": {},
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_MIMIR}"
-          },
-          "definition": "label_values(ping_up,__tenant_id__)",
-          "hide": 1,
-          "includeAll": true,
-          "label": "tenant",
-          "multi": true,
-          "name": "tenant",
-          "options": [],
-          "query": {
-            "qryType": 1,
-            "query": "label_values(ping_up,__tenant_id__)",
-            "refId": "PrometheusVariableQueryEditor-VariableQuery"
-          },
-          "refresh": 1,
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": 0,
-          "type": "query"
-        },
-        {
-          "current": {},
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_MIMIR}"
-          },
-          "definition": "label_values(ping_up,instance)",
-          "hide": 1,
-          "includeAll": true,
-          "label": "instance",
-          "multi": true,
-          "name": "instance",
-          "options": [],
-          "query": {
-            "qryType": 1,
-            "query": "label_values(ping_up,instance)",
-            "refId": "PrometheusVariableQueryEditor-VariableQuery"
-          },
-          "refresh": 1,
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": 0,
-          "type": "query"
-        }
-      ]
-    },
-    "time": {
-      "from": "now-15m",
-      "to": "now"
-    },
-    "timepicker": {},
-    "timezone": "browser",
-    "title": "Hosts Availabiilty from other hosts",
-    "uid": "bdylj2q1607i8b",
-    "version": 2,
-    "weekStart": ""
-  }
+    ]
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Host Reachability & RTT Status",
+  "uid": "bdylj2q1607i8b",
+  "version": 4,
+  "weekStart": ""
+}
