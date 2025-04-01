@@ -60,15 +60,17 @@ declare -a icmp_rtt=(google.fr)
 
 ## Create a cron entry with the following
 
+Avoid putting these in `/etc/crontab` since sendmail will trigger an email for each task
+
 ```
-echo "* * * * * root /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf" >> /etc/crontab
+echo "* * * * * root /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf" > /etc/cron.d/hosts_up
 ```
 
 Since cron has a minute resolution, if you need to run this test more than every minute, you might add 3 other lines to cron like the following to run every 15 seconds:
 ```
-* * * * * root sleep 15; /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf"
-* * * * * root sleep 30; /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf"
-* * * * * root sleep 45; /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf"
+echo "* * * * * root sleep 15; /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf" > /etc/cron.d/hosts_up
+echo "* * * * * root sleep 30; /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf" > /etc/cron.d/hosts_up
+echo "* * * * * root sleep 45; /usr/local/bin/hosts_up.sh --config=/etc/hosts_up.conf" > /etc/cron.d/hosts_up
 ```
 
 
