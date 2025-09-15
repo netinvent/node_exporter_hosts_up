@@ -703,7 +703,7 @@ _testSite() {
                 IP_PROTO=""
         fi
 
-        Logger "Running ${METHOD} ping ${protocol} for host ${host} on port ${port}" "NOTICE"
+        Logger "Running ${METHOD} ping ${IP_PROTO} for host ${host} on port ${port}" "NOTICE"
 
 
         if [ "$traceRouteImplementation" = "tcptraceroute" ]; then
@@ -797,7 +797,7 @@ _host_ping() {
         else
                 IP_PROTO=""
         fi
-        Logger "Running ping for host ${host}" "NOTICE"
+        Logger "Running ping ${IP_PROTO} for host ${host}" "NOTICE"
         ping ${IP_PROTO} -i ${PING_INTERVAL} -c ${PING_RETRIES} -W ${PING_TIMEOUT} ${host} > /dev/null 2>&1
         printf "ping_up{target_host=\""${host}"\",protocol=\"ipv"${protocol}"\""${LABELS}"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
         return
