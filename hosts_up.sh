@@ -3,8 +3,8 @@
 # Check layer2/3 availability and roundtrip via ICMP, TCP or UDP
 # Used for GRE / VPN tunnel availability checks among other usages
 
-# (C) 2024 NetInvent SAS under BSD-3-Clause license
-SCRIPT_BUILD=2024092401
+# (C) 2024-2025 NetInvent SAS under BSD-3-Clause license
+SCRIPT_BUILD=2025091501
 
 # Default values that can be overrided via a file
 CONF_FILE=/etc/hosts_up.conf
@@ -686,8 +686,9 @@ checkEnvironment_tcpping() {
 # Measure latency via TCP SYN / UDP / ICMP
 _testSite() {
         local METHOD="${1}"
-        local host="${2}"
-        local port="${3:-80}"
+        local protocol="${2}"
+        local host="${3}"
+        local port="${4:-80}"
 
         local traceRoute=
         local traceRouteCommand=
@@ -696,7 +697,13 @@ _testSite() {
 
         local myseq=0
 
-        Logger "Running ${METHOD} ping for host ${host} on port ${port}" "NOTICE"
+        if [ "${protocol}" -eq 4 ] || [ "${protocol}" -eq 6 ]; then
+                IP_PROTO="-${protocol}"
+        else
+                IP_PROTO=""
+        fi
+
+        Logger "Running ${METHOD} ping ${protocol} for host ${host} on port ${port}" "NOTICE"
 
 
         if [ "$traceRouteImplementation" = "tcptraceroute" ]; then
@@ -704,9 +711,9 @@ _testSite() {
                         echo echo >&2 "Cannot use ${traceRouteBinary} with method ${METHOD}. Please use traceroute"
                         exit 23
                 fi
-                traceRouteCommand="$SUDO_COMMAND${traceRouteBinary} -f ${f_ttl} -m ${m_ttl} -q ${PING_RETRIES} -w ${PING_TIMEOUT} ${args} ${host} ${port}"
+                traceRouteCommand="$SUDO_COMMAND${traceRouteBinary} ${IP_PROTO} -f ${f_ttl} -m ${m_ttl} -q ${PING_RETRIES} -w ${PING_TIMEOUT} ${args} ${host} ${port}"
         else
-                traceRouteCommand="$SUDO_COMMAND${traceRouteBinary} ${METHOD_PARAMETER} ${METHOD} -f ${f_ttl} -m ${m_ttl} -q ${PING_RETRIES} -w ${PING_TIMEOUT} -p ${port} ${host}"
+                traceRouteCommand="$SUDO_COMMAND${traceRouteBinary} ${IP_PROTO} ${METHOD_PARAMETER} ${METHOD} -f ${f_ttl} -m ${m_ttl} -q ${PING_RETRIES} -w ${PING_TIMEOUT} -p ${port} ${host}"
         fi
         if [ "{$_DEBUG}" = true ]; then
                 echo "$traceRouteCommand"
@@ -764,28 +771,35 @@ _testSite() {
 
 testSite() {
         local METHOD="${1}"
-        local host="${2}"
-        local port="${3:-80}"
+        local protocol="${2}"
+        local host="${3}"
+        local port="${4:-80}"
 
         local counter=0
 
         rtt=0.0
         while ([ ${rtt} == "0.0" ] && [ $counter -lt $PING_RETRIES ]); do
-                _testSite ${METHOD} ${host} ${port}
+                _testSite ${METHOD} ${protocol} ${host} ${port}
                 counter=$((counter+1))
         done
 
-        printf "host_rtt{target_host=\""${host}":"${port}"\",method=\""${METHOD}"\""${LABELS}"} "${rtt}"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+        printf "host_rtt{target_host=\""${host}":"${port}"\",protocol=\"ipv${protocol}\",method=\""${METHOD}"\""${LABELS}"} "${rtt}"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
 }
 
 ## TCPPING 2.5 import end
 
 _host_ping() {
-        local host="${1}"
+        local protocol="${1}"
+        local host="${2}"
 
+        if [ "${protocol}" -eq 4 ] || [ "${protocol}" -eq 6 ]; then
+                IP_PROTO="-${protocol}"
+        else
+                IP_PROTO=""
+        fi
         Logger "Running ping for host ${host}" "NOTICE"
-        ping -i ${PING_INTERVAL} -c ${PING_RETRIES} -W ${PING_TIMEOUT} ${host} > /dev/null 2>&1
-        printf "ping_up{target_host=\""${host}"\""${LABELS}"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+        ping ${IP_PROTO} -i ${PING_INTERVAL} -c ${PING_RETRIES} -W ${PING_TIMEOUT} ${host} > /dev/null 2>&1
+        printf "ping_up{target_host=\""${host}"\",protocol=\"ipv"${protocol}"\""${LABELS}"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
         return
 }
 
@@ -804,34 +818,98 @@ host_ping() {
                         LABELS="${LABELS},${label_name}=\""${label_value}"\""
                 done
         fi
-        if [ "${tcp_rtt}" != "" ] || [ "${udp_rtt}" != "" ] || [ "${icmp_rtt}" != "" ]; then
+        if [ "${tcp_rtt}" != "" ] || [ "${udp_rtt}" != "" ] || [ "${icmp_rtt}" != "" ] || [ "${tcp4_rtt}" != "" ] || [ "${udp4_rtt}" != "" ] || [ "${icmp4_rtt}" != "" ] || [ "${tcp6_rtt}" != "" ] || [ "${udp6_rtt}" != "" ] || [ "${icmp6_rtt}" != "" ]; then
                 checkEnvironment_tcpping
         fi
 
         pids=""
+        # IPv4 or IPv6
         for addr in ${tcp_rtt[@]}; do
                 host="${addr%%:*}"
                 port="${addr##*:}"
-                testSite "tcp" "${host}" "${port}" &
+                testSite "tcp" 0 "${host}" "${port}" &
                 pids="$pids;$!"
         done
 
+        # IPv4
+        for addr in ${tcp4_rtt[@]}; do
+                host="${addr%%:*}"
+                port="${addr##*:}"
+                testSite "tcp" 4 "${host}" "${port}" &
+                pids="$pids;$!"
+        done
+
+        # IPv6
+        for addr in ${tcp6_rtt[@]}; do
+                host="${addr%%:*}"
+                port="${addr##*:}"
+                testSite "tcp" 6 "${host}" "${port}" &
+                pids="$pids;$!"
+        done
+
+        # IPv4 or IPv6
         for addr in ${udp_rtt[@]}; do
                 host="${addr%%:*}"
                 port="${addr##*:}"
-                testSite "udp" "$host" "${port}" &
+                testSite "udp" 0 "$host" "${port}" &
                 pids="$pids;$!"
         done
 
+        # IPv4
+        for addr in ${udp4_rtt[@]}; do
+                host="${addr%%:*}"
+                port="${addr##*:}"
+                testSite "udp" 4 "$host" "${port}" &
+                pids="$pids;$!"
+        done
+
+        # IPv6
+        for addr in ${udp6_rtt[@]}; do
+                host="${addr%%:*}"
+                port="${addr##*:}"
+                testSite "udp" 6 "$host" "${port}" &
+                pids="$pids;$!"
+        done
+
+        # IPv4 or IPv6
         for addr in ${icmp_rtt[@]}; do
                 host="${addr%%:*}"
                 port="0"
-                testSite "icmp" "$host" "${port}" &
+                testSite "icmp" 0 "$host" "${port}" &
                 pids="$pids;$!"
         done
 
+        # IPv4
+        for addr in ${icmp4_rtt[@]}; do
+                host="${addr%%:*}"
+                port="0"
+                testSite "icmp" 4 "$host" "${port}" &
+                pids="$pids;$!"
+        done
+
+        # IPv6
+        for addr in ${icmp6_rtt[@]}; do
+                host="${addr%%:*}"
+                port="0"
+                testSite "icmp" 6 "$host" "${port}" &
+                pids="$pids;$!"
+        done
+
+        # IPv4 or IPv6
         for host in ${ping_hosts[@]}; do
-                _host_ping "$host" &
+                _host_ping 0 "$host" &
+                pids="$pids;$!"
+        done
+
+        # IPv4
+        for host in ${ping4_hosts[@]}; do
+                _host_ping 4 "$host" &
+                pids="$pids;$!"
+        done
+
+        # IPv6
+        for host in ${ping6_hosts[@]}; do
+                _host_ping 6 "$host" &
                 pids="$pids;$!"
         done
         ExecTasks $pids
