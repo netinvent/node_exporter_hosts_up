@@ -783,7 +783,14 @@ testSite() {
                 counter=$((counter+1))
         done
 
-        printf "host_rtt{target_host=\""${host}":"${port}"\",protocol=\"ipv${protocol}\",method=\""${METHOD}"\""${LABELS}"} "${rtt}"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+        if [ "${protocol}" -eq 4 ] || [ "${protocol}" -eq 6 ]; then
+                labels=",protocol=\"ipv"${protocol}"\""${LABELS}""
+        else
+                labels="${LABELS}"
+        fi
+
+
+        printf "host_rtt{target_host=\""${host}":"${port}"\",method=\""${METHOD}"\""${labels}"} "${rtt}"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
 }
 
 ## TCPPING 2.5 import end
@@ -793,13 +800,14 @@ _host_ping() {
         local host="${2}"
 
         if [ "${protocol}" -eq 4 ] || [ "${protocol}" -eq 6 ]; then
-                IP_PROTO="-${protocol}"
+                labels=",protocol=\"ipv"${protocol}"\""${LABELS}""
         else
-                IP_PROTO=""
+                labels="${LABELS}"
         fi
+
         Logger "Running ping ${IP_PROTO} for host ${host}" "NOTICE"
         ping ${IP_PROTO} -i ${PING_INTERVAL} -c ${PING_RETRIES} -W ${PING_TIMEOUT} ${host} > /dev/null 2>&1
-        printf "ping_up{target_host=\""${host}"\",protocol=\"ipv"${protocol}"\""${LABELS}"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
+        printf "ping_up{target_host=\""${host}"\""${labels}"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
         return
 }
 
