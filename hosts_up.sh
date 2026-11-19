@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # Check layer2/3 availability and roundtrip via ICMP, TCP or UDP
-# Used for GRE / VPN tunnel availability checks among other usages
+# Used for various GRE / VPN tunnel availability checks among other usages
 
-# (C) 2024-2025 NetInvent SAS under BSD-3-Clause license
-SCRIPT_BUILD=2025091501
+# (C) 2024-2026 NetInvent SAS under BSD-3-Clause license
+SCRIPT_BUILD=2026111901
 
 # Default values that can be overrided via a file
 CONF_FILE=/etc/hosts_up.conf
@@ -801,12 +801,13 @@ _host_ping() {
 
         if [ "${protocol}" -eq 4 ] || [ "${protocol}" -eq 6 ]; then
                 labels=",protocol=\"ipv"${protocol}"\""${LABELS}""
+                ip_proto="-${protocol}"
         else
                 labels="${LABELS}"
         fi
 
         Logger "Running ping ${IP_PROTO} for host ${host}" "NOTICE"
-        ping ${IP_PROTO} -i ${PING_INTERVAL} -c ${PING_RETRIES} -W ${PING_TIMEOUT} ${host} > /dev/null 2>&1
+        ping ${ip_proto} -i ${PING_INTERVAL} -c ${PING_RETRIES} -W ${PING_TIMEOUT} ${host} > /dev/null 2>&1
         printf "ping_up{target_host=\""${host}"\""${labels}"} "$?"\n" >> "${NODE_EXPORTER_TEXT_COLLECTOR_DIR}/${PROM_FILE}"
         return
 }
